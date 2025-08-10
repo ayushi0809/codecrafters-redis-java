@@ -19,9 +19,9 @@ public class Main {
       // ensures that we don't run into 'Address already in use' errors
       serverSocket.setReuseAddress(true);
       // Wait for connection from client.
-      clientSocket = serverSocket.accept();
       while (true) {
         // Read data from the client.
+        clientSocket = serverSocket.accept();
         byte[] buffer = new byte[1024];
         clientSocket.getInputStream().read(buffer);
         String request = new String(buffer).trim();
