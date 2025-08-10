@@ -32,7 +32,7 @@ public class Main {
   static void handleClient(Socket clientSocket) {
     try (OutputStream out = clientSocket.getOutputStream()) {
       // Send a simple response to the client
-      out.write("PONG\n".getBytes());
+      out.write("+PONG\\r\\n".getBytes());
       out.flush();
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
