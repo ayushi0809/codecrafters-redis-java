@@ -32,22 +32,39 @@ public class Main {
   }
 
   static void handleClient(Socket clientSocket) {
-    try (clientSocket; // automatically closes socket at the end
+    try (clientSocket;
         OutputStream outputStream = clientSocket.getOutputStream();
         BufferedReader in = new BufferedReader(
             new InputStreamReader(clientSocket.getInputStream()))) {
       // Send a simple response to the client
       while (true) {
-        // hacky way to read input; will change
-        if (in.readLine() == null) {
+        String inputLine = in.readLine();
+        if (inputLine == null) {
           break;
         }
-        in.readLine();
-        String line = in.readLine();
-        System.out.println("Last line: " + line);
-
-        outputStream.write("+PONG\r\n".getBytes());
-        System.out.println("Wrote pong");
+        System.out.println("Received: " + inputLine);
+        // Parse RESP array for ECHO command
+        if (inputLine.startsWith("*2")) { // Array of 2 elements
+          String cmd = in.readLine(); // $4
+          String echoCmd = in.readLine(); // ECHO
+          String argLen = in.readLine(); // $3 (or other length)
+          String arg = in.readLine(); // hey (or other argument)
+          System.out.println("Command: " + echoCmd + ", Arg: " + arg);
+          System.out.println("Arg Length: " + argLen);
+          if (echoCmd.equalsIgnoreCase("ECHO")) {
+            outputStream.write((argLen + "\r\n" + arg + "\r\n").getBytes());
+            System.out.println("Wrote echo response: " + arg);
+            continue;
+          }
+        }
+        // Fallback for PING
+        if (inputLine.equalsIgnoreCase("PING")) {
+          outputStream.write("+PONG\r\n".getBytes());
+          System.out.println("Wrote ping");
+        } else {
+          outputStream.write("-ERR unknown command\r\n".getBytes());
+          System.out.println("Wrote error for unknown command");
+        }
       }
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
