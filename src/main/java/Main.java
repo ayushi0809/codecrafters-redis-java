@@ -11,7 +11,6 @@ public class Main {
 
     // Uncomment this block to pass the first stage
     ServerSocket serverSocket = null;
-    Socket clientSocket = null;
     int port = 6379;
     try {
       serverSocket = new ServerSocket(port);
@@ -21,23 +20,25 @@ public class Main {
       // Wait for connection from client.
       while (true) {
         // Read data from the client.
-        clientSocket = serverSocket.accept();
-        byte[] buffer = new byte[1024];
-        clientSocket.getInputStream().read(buffer);
-        String request = new String(buffer).trim();
-        System.out.println("Received request: " + request);
-        OutputStream outputStream = clientSocket.getOutputStream();
-        System.out.println(outputStream);
-        outputStream.write("+PONG\r\n".getBytes());
+        Socket clientSocket = serverSocket.accept();
+        new Thread(() -> handleClient(clientSocket)).start();
       }
 
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
+    }
+  }
+
+  static void handleClient(Socket clientSocket) {
+    try (OutputStream out = clientSocket.getOutputStream()) {
+      // Send a simple response to the client
+      out.write("PONG\n".getBytes());
+      out.flush();
+    } catch (IOException e) {
+      System.out.println("IOException: " + e.getMessage());
     } finally {
       try {
-        if (clientSocket != null) {
-          clientSocket.close();
-        }
+        clientSocket.close();
       } catch (IOException e) {
         System.out.println("IOException: " + e.getMessage());
       }
