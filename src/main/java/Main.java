@@ -61,9 +61,6 @@ public class Main {
         if (inputLine.equalsIgnoreCase("PING")) {
           outputStream.write("+PONG\r\n".getBytes());
           System.out.println("Wrote ping");
-        } else {
-          outputStream.write("-ERR unknown command\r\n".getBytes());
-          System.out.println("Wrote error for unknown command");
         }
       }
     } catch (IOException e) {
