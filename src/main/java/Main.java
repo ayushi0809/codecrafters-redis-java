@@ -4,8 +4,12 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
+  static Map<String, String> store = new HashMap<>();
+
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
     // when running tests.
@@ -14,6 +18,7 @@ public class Main {
     // Uncomment this block to pass the first stage
     ServerSocket serverSocket = null;
     int port = 6379;
+
     try {
       serverSocket = new ServerSocket(port);
       // Since the tester restarts your program quite often, setting SO_REUSEADDR
@@ -54,6 +59,32 @@ public class Main {
           if (echoCmd.equalsIgnoreCase("ECHO")) {
             outputStream.write((argLen + "\r\n" + arg + "\r\n").getBytes());
             System.out.println("Wrote echo response: " + arg);
+            continue;
+          }
+          if (echoCmd.equalsIgnoreCase("GET")) {
+            String value = store.get(arg);
+            if (value != null) {
+              String valueLen = "$" + value.length() + "\r\n";
+              outputStream.write((valueLen + value + "\r\n").getBytes());
+              System.out.println("Wrote get response for variable: " + arg + ", Value: " + value);
+              continue;
+            }
+
+          }
+        }
+        if (inputLine.startsWith("*3")) {
+          String cmd = in.readLine();
+          String setcmd = in.readLine(); // SET
+          String argLen = in.readLine(); // variable name
+          String variable = in.readLine(); // variable name
+          String valueLen = in.readLine(); // $5 (or other length)
+          String value = in.readLine(); // value
+          System.out.println("Command: " + setcmd + ", Variable: " + variable + ", Value: " + value);
+          System.out.println("Value Length: " + valueLen);
+          if (setcmd.equalsIgnoreCase("SET")) {
+            store.put(variable, value);
+            outputStream.write(("+OK\r\n").getBytes());
+            System.out.println("Wrote set response for variable: " + variable);
             continue;
           }
         }
