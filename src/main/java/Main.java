@@ -205,7 +205,7 @@ public class Main {
                     listlocks.get(key).wait(); // Wait indefinitely
                   } else {
                     int timeout = Integer.parseInt(args[2]);
-                    if (timeout <= 0) {
+                    if (timeout < 0) {
                       outputStream.write("$-1\r\n".getBytes());
                       return;
                     }
