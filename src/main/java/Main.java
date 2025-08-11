@@ -108,6 +108,31 @@ public class Main {
             continue;
 
           }
+          if (args[0].equalsIgnoreCase("LRANGE")) {
+            String key = args[1];
+            int start = Integer.parseInt(args[2]);
+            int end = Integer.parseInt(args[3]);
+            List<String> list = listStore.getOrDefault(key, new ArrayList<>());
+            if (start < 0)
+              start += list.size();
+            if (end < 0)
+              end += list.size();
+            if (start < 0)
+              start = 0;
+            if (end >= list.size())
+              end = list.size() - 1;
+            if (start > end || start >= list.size()) {
+              outputStream.write("*0\r\n".getBytes());
+              continue;
+            }
+            StringBuilder response = new StringBuilder("*" + (end - start + 1) + "\r\n");
+            for (int i = start; i <= end; i++) {
+              response.append("$").append(list.get(i).length()).append("\r\n")
+                  .append(list.get(i)).append("\r\n");
+            }
+            outputStream.write(response.toString().getBytes());
+            continue;
+          }
         }
       }
     } catch (IOException e) {
