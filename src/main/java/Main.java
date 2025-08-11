@@ -150,6 +150,22 @@ public class Main {
             outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
           }
+          if (args[0].equalsIgnoreCase("LPOP")) {
+            String key = args[1];
+            List<String> list = listStore.getOrDefault(key, new ArrayList<>());
+            if (list.isEmpty()) {
+              outputStream.write("$-1\r\n".getBytes());
+            } else {
+              String value = list.remove(0);
+              outputStream.write(("$" + value.length() + "\r\n" + value + "\r\n").getBytes());
+              if (list.isEmpty()) {
+                listStore.remove(key);
+              } else {
+                listStore.put(key, list);
+              }
+            }
+            continue;
+          }
         }
       }
     } catch (IOException e) {
