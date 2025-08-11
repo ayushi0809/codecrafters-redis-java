@@ -199,19 +199,18 @@ public class Main {
             listlocks.putIfAbsent(key, new Object());
             List<String> list = listStore.get(key);
             synchronized (listlocks.get(key)) {
+              long start = System.currentTimeMillis();
+              long timeout = args[2].equalsIgnoreCase("0") ? -1 : (long) (Double.parseDouble(args[2]) * 1000);
               while (list.isEmpty()) {
                 try {
-                  if (args[2].equalsIgnoreCase("0")) {
+                  if (timeout == -1) {
                     listlocks.get(key).wait(); // Wait indefinitely
                   } else {
-                    double timeoutSeconds = Double.parseDouble(args[2]);
-                    long timeout = (long) (timeoutSeconds * 1000);
-                    if (timeout < 0) {
-                      outputStream.write("$-1\r\n".getBytes());
-                      return;
-                    }
-                    listlocks.get(key).wait(timeout);
-
+                    long elapsed = System.currentTimeMillis() - start;
+                    long remaining = timeout - elapsed;
+                    if (remaining <= 0)
+                      break; // Timeout expired, break loop
+                    listlocks.get(key).wait(remaining);
                   }
                 } catch (InterruptedException e) {
                   Thread.currentThread().interrupt();
