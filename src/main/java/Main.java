@@ -156,8 +156,14 @@ public class Main {
             if (list.isEmpty()) {
               outputStream.write("$-1\r\n".getBytes());
             } else {
-              String value = list.remove(0);
-              outputStream.write(("$" + value.length() + "\r\n" + value + "\r\n").getBytes());
+              int range = Integer.parseInt(args[2]);
+              StringBuilder response = new StringBuilder("*" + Math.min(range, list.size()) + "\r\n");
+              while (range-- > 0 && !list.isEmpty()) {
+                String value = list.remove(0);
+                response.append("$").append(value.length()).append("\r\n")
+                    .append(value).append("\r\n");
+              }
+              outputStream.write(response.toString().getBytes());
               if (list.isEmpty()) {
                 listStore.remove(key);
               } else {
