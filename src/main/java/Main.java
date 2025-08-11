@@ -144,6 +144,12 @@ public class Main {
             outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
           }
+          if (args[0].equalsIgnoreCase("LLEN")) {
+            String key = args[1];
+            List<String> list = listStore.getOrDefault(key, new ArrayList<>());
+            outputStream.write((":" + list.size() + "\r\n").getBytes());
+            continue;
+          }
         }
       }
     } catch (IOException e) {
