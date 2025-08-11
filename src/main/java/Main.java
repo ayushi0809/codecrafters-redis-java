@@ -204,12 +204,13 @@ public class Main {
                   if (args[2].equalsIgnoreCase("0")) {
                     listlocks.get(key).wait(); // Wait indefinitely
                   } else {
-                    long timeout = Long.parseLong(args[2]);
+                    double timeoutSeconds = Double.parseDouble(args[2]);
+                    long timeout = (long) (timeoutSeconds * 1000);
                     if (timeout < 0) {
                       outputStream.write("$-1\r\n".getBytes());
                       return;
                     }
-                    listlocks.get(key).wait(timeout * 1000);
+                    listlocks.get(key).wait(timeout);
 
                   }
                 } catch (InterruptedException e) {
