@@ -204,7 +204,7 @@ public class Main {
                   if (args[2].equalsIgnoreCase("0")) {
                     listlocks.get(key).wait(); // Wait indefinitely
                   } else {
-                    int timeout = Integer.parseInt(args[2]);
+                    long timeout = Long.parseLong(args[2]);
                     if (timeout < 0) {
                       outputStream.write("$-1\r\n".getBytes());
                       return;
