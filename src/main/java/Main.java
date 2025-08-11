@@ -96,10 +96,14 @@ public class Main {
           }
           if (args[0].equalsIgnoreCase("RPUSH")) {
             String key = args[1];
-            String value = args[2];
+            // String value = args[2];
             listStore.putIfAbsent(key, new ArrayList<>());
             List<String> list = listStore.get(key);
-            list.add(value);
+            for (int i = 2; i < args.length; i++) {
+              String value = args[i];
+              list.add(value);
+            }
+
             outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
 
