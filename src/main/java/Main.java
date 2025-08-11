@@ -133,6 +133,17 @@ public class Main {
             outputStream.write(response.toString().getBytes());
             continue;
           }
+          if (args[0].equalsIgnoreCase("LPUSH")) {
+            String key = args[1];
+            listStore.putIfAbsent(key, new ArrayList<>());
+            List<String> list = listStore.get(key);
+            for (int i = 2; i < args.length; i++) {
+              String value = args[i];
+              list.add(0, value);
+            }
+            outputStream.write((":" + list.size() + "\r\n").getBytes());
+            continue;
+          }
         }
       }
     } catch (IOException e) {
