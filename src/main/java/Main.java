@@ -8,11 +8,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Main {
   static Map<String, String> store = new HashMap<>();
   static Map<String, Long> expiryMap = new HashMap<>();
   static Map<String, List<String>> listStore = new HashMap<>();
+  static Map<String, Object> listlocks = new ConcurrentHashMap<>();
 
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
@@ -103,6 +105,12 @@ public class Main {
               String value = args[i];
               list.add(value);
             }
+            Object lock = listlocks.get(key);
+            if (lock != null) {
+              synchronized (lock) {
+                lock.notifyAll();
+              }
+            }
 
             outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
@@ -141,6 +149,12 @@ public class Main {
               String value = args[i];
               list.add(0, value);
             }
+            Object lock = listlocks.get(key);
+            if (lock != null) {
+              synchronized (lock) {
+                lock.notifyAll();
+              }
+            }
             outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
           }
@@ -178,6 +192,46 @@ public class Main {
               }
               continue;
             }
+          }
+          if (args[0].equalsIgnoreCase("BLPOP")) {
+            String key = args[1];
+            listStore.putIfAbsent(key, new ArrayList<>());
+            listlocks.putIfAbsent(key, new Object());
+            List<String> list = listStore.get(key);
+            synchronized (listlocks.get(key)) {
+              while (list.isEmpty()) {
+                try {
+                  if (args[2].equalsIgnoreCase("0")) {
+                    listlocks.get(key).wait(); // Wait indefinitely
+                  } else {
+                    int timeout = Integer.parseInt(args[2]);
+                    if (timeout <= 0) {
+                      outputStream.write("$-1\r\n".getBytes());
+                      return;
+                    }
+                    listlocks.get(key).wait(timeout * 1000);
+
+                  }
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                  outputStream.write("$-1\r\n".getBytes());
+                  return;
+                }
+              }
+            }
+
+            if (!list.isEmpty()) {
+              String value = list.remove(0);
+              outputStream.write(("*2" + "\r\n" + "$" + key.length() + "\r\n" + key + "\r\n"
+                  + "$" + value.length() + "\r\n" + value + "\r\n").getBytes());
+              if (list.isEmpty()) {
+                listStore.remove(key);
+              }
+            } else {
+              outputStream.write("$-1\r\n".getBytes());
+            }
+
+            continue;
           }
         }
       }
