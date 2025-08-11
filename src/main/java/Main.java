@@ -9,6 +9,7 @@ import java.util.Map;
 
 public class Main {
   static Map<String, String> store = new HashMap<>();
+  static Map<String, Long> expiryMap = new HashMap<>();
 
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
@@ -43,55 +44,53 @@ public class Main {
             new InputStreamReader(clientSocket.getInputStream()))) {
       // Send a simple response to the client
       while (true) {
-        String inputLine = in.readLine();
-        if (inputLine == null) {
+        String line = in.readLine();
+        if (line == null)
           break;
-        }
-        System.out.println("Received: " + inputLine);
-        // Parse RESP array for ECHO command
-        if (inputLine.startsWith("*2")) { // Array of 2 elements
-          String cmd = in.readLine(); // $4
-          String echoCmd = in.readLine(); // ECHO
-          String argLen = in.readLine(); // $3 (or other length)
-          String arg = in.readLine(); // hey (or other argument)
-          System.out.println("Command: " + echoCmd + ", Arg: " + arg);
-          System.out.println("Arg Length: " + argLen);
-          if (echoCmd.equalsIgnoreCase("ECHO")) {
-            outputStream.write((argLen + "\r\n" + arg + "\r\n").getBytes());
-            System.out.println("Wrote echo response: " + arg);
+        if (line.startsWith("*")) {
+          int numArgs = Integer.parseInt(line.substring(1));
+          String[] args = new String[numArgs];
+          for (int i = 0; i < numArgs; i++) {
+            in.readLine(); // skip $length
+            args[i] = in.readLine();
+          }
+          if (args[0].equalsIgnoreCase("PING")) {
+            outputStream.write("+PONG\r\n".getBytes());
             continue;
           }
-          if (echoCmd.equalsIgnoreCase("GET")) {
-            String value = store.get(arg);
-            if (value != null) {
-              String valueLen = "$" + value.length() + "\r\n";
-              outputStream.write((valueLen + value + "\r\n").getBytes());
-              System.out.println("Wrote get response for variable: " + arg + ", Value: " + value);
+          if (args[0].equalsIgnoreCase("ECHO")) {
+            outputStream.write(("+" + args[1] + "\r\n").getBytes());
+            continue;
+          }
+          if (args[0].equalsIgnoreCase("SET")) {
+            store.put(args[1], args[2]);
+            // Handle expiry if present
+            if (numArgs >= 5 && args[3].equalsIgnoreCase("px")) {
+              long seconds = Long.parseLong(args[4]);
+              long expiry = System.currentTimeMillis() + seconds;
+              expiryMap.put(args[1], expiry);
+            } else {
+              expiryMap.remove(args[1]);
+            }
+            outputStream.write("+OK\r\n".getBytes());
+            continue;
+          }
+          if (args[0].equalsIgnoreCase("GET")) {
+            String value = store.get(args[1]);
+            Long expiry = expiryMap.get(args[1]);
+            if (expiry != null && System.currentTimeMillis() > expiry) {
+              store.remove(args[1]);
+              expiryMap.remove(args[1]);
+              outputStream.write("$-1\r\n".getBytes());
               continue;
             }
-
-          }
-        }
-        if (inputLine.startsWith("*3")) {
-          String cmd = in.readLine();
-          String setcmd = in.readLine(); // SET
-          String argLen = in.readLine(); // variable name
-          String variable = in.readLine(); // variable name
-          String valueLen = in.readLine(); // $5 (or other length)
-          String value = in.readLine(); // value
-          System.out.println("Command: " + setcmd + ", Variable: " + variable + ", Value: " + value);
-          System.out.println("Value Length: " + valueLen);
-          if (setcmd.equalsIgnoreCase("SET")) {
-            store.put(variable, value);
-            outputStream.write(("+OK\r\n").getBytes());
-            System.out.println("Wrote set response for variable: " + variable);
+            if (value != null) {
+              outputStream.write(("$" + value.length() + "\r\n" + value + "\r\n").getBytes());
+            } else {
+              outputStream.write("$-1\r\n".getBytes());
+            }
             continue;
           }
-        }
-        // Fallback for PING
-        if (inputLine.equalsIgnoreCase("PING")) {
-          outputStream.write("+PONG\r\n".getBytes());
-          System.out.println("Wrote ping");
         }
       }
     } catch (IOException e) {
