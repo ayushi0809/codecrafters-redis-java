@@ -4,12 +4,15 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Main {
   static Map<String, String> store = new HashMap<>();
   static Map<String, Long> expiryMap = new HashMap<>();
+  static Map<String, List<String>> listStore = new HashMap<>();
 
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
@@ -90,6 +93,16 @@ public class Main {
               outputStream.write("$-1\r\n".getBytes());
             }
             continue;
+          }
+          if (args[0].equalsIgnoreCase("RPUSH")) {
+            String key = args[1];
+            String value = args[2];
+            listStore.putIfAbsent(key, new ArrayList<>());
+            List<String> list = listStore.get(key);
+            list.add(value);
+            outputStream.write((":" + list.size() + "\r\n").getBytes());
+            continue;
+
           }
         }
       }
