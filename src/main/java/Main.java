@@ -106,6 +106,8 @@ public class Main {
               String value = args[i];
               list.add(value);
             }
+            outputStream.write((":" + list.size() + "\r\n").getBytes());
+
             Object lock = listlocks.get(key);
             if (lock != null) {
               synchronized (lock) {
@@ -113,7 +115,6 @@ public class Main {
               }
             }
 
-            outputStream.write((":" + list.size() + "\r\n").getBytes());
             continue;
 
           }
