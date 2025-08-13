@@ -417,14 +417,9 @@ public class Main {
             String key = args[2];
             String id = args[3];
 
-            // if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
-            // outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
-            // continue;
-            // }
-
             List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
 
-            StreamId startId = StreamId.fromString(id, false); // isEndId = false
+            StreamId startId = StreamId.fromString(id, false);
 
             List<Map<String, String>> results = new ArrayList<>();
             for (Map<String, String> entry : entries) {
@@ -443,9 +438,11 @@ public class Main {
             response.append("*1\r\n"); // Outer array with count of results
             response.append("*2\r\n"); // Inner array for the stream
             response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
-            response.append("*").append(results.size()).append("\r\n"); // Count of entries in the stream
+            response.append("*").append(results.size()).append("\r\n"); // Count of
+            // entries in the stream
 
             for (Map<String, String> entry : results) {
+              response.append("*2\r\n");
               String idStr = entry.get("id");
               response.append("$").append(idStr.length()).append("\r\n").append(idStr).append("\r\n");
               response.append("*").append((entry.size() - 1) * 2).append("\r\n");
