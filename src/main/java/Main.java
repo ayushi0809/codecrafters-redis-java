@@ -256,15 +256,22 @@ public class Main {
             }
             streamStore.putIfAbsent(key, new ArrayList<>());
             List<Map<String, String>> entries = streamStore.get(key);
-
+            String[] newParts = id.split("-");
+            long newMs = Long.parseLong(newParts[0]);
+            long newSeq = 0;
             if (!entries.isEmpty()) {
               String lastId = entries.get(entries.size() - 1).get("id");
               String[] lastParts = lastId.split("-");
-              String[] newParts = id.split("-");
               long lastMs = Long.parseLong(lastParts[0]);
-              long newMs = Long.parseLong(newParts[0]);
               long lastSeq = Long.parseLong(lastParts[1]);
-              long newSeq = Long.parseLong(newParts[1]);
+              if (newParts[1] == "*") {
+                newSeq = lastSeq + 1;
+              } else if (newParts.length != 2) {
+                outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
+                continue;
+              } else {
+                newSeq = Long.parseLong(newParts[1]);
+              }
               if (newMs <= 0 && newSeq <= 0) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
@@ -274,6 +281,7 @@ public class Main {
                     "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
                 continue;
               }
+              id = newMs + "-" + newSeq;
               for (Map<String, String> entry : entries) {
                 if (entry.get("id").equals(id)) {
                   outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
@@ -282,10 +290,7 @@ public class Main {
               }
             } else {
               // Stream is empty, check that ID > 0-0
-              String[] newParts = id.split("-");
-              long newMs = Long.parseLong(newParts[0]);
-              long newSeq = Long.parseLong(newParts[1]);
-              if (newMs <= 0 && newSeq <= 0) {
+              if (newMs <= 0 && newSeq < 0) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
