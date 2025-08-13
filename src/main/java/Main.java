@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -414,49 +415,81 @@ public class Main {
             continue;
           }
           if (args[0].equalsIgnoreCase("XREAD")) {
-            String key = args[2];
-            String id = args[3];
-
-            List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
-
-            StreamId startId = StreamId.fromString(id, false);
-
-            List<Map<String, String>> results = new ArrayList<>();
-            for (Map<String, String> entry : entries) {
-              StreamId currentId = StreamId.fromString(entry.get("id"), false);
-              if (currentId.compareTo(startId) > 0) {
-                results.add(entry);
+            int streamsIndex = -1;
+            for (int i = 1; i < args.length; i++) {
+              if (args[i].equalsIgnoreCase("STREAMS")) {
+                streamsIndex = i;
+                break;
               }
             }
 
-            if (results.isEmpty()) {
-              outputStream.write("$-1\r\n".getBytes());
-              continue;
+            if (streamsIndex == -1) {
+              outputStream.write("-ERR syntax error\r\n".getBytes());
+              return;
             }
 
+            int remainingArgs = args.length - streamsIndex - 1;
+            if (remainingArgs % 2 != 0) {
+              outputStream.write("-ERR Unbalanced XREAD list of streams: keys and IDs must be balanced\r\n".getBytes());
+              return;
+            }
+
+            int numStreams = remainingArgs / 2;
+            ArrayList<String> keys = new ArrayList<>();
+            ArrayList<String> ids = new ArrayList<>();
+            for (int i = 0; i < numStreams; i++) {
+              keys.add(args[streamsIndex + 1 + i]);
+            }
+            for (int i = 0; i < numStreams; i++) {
+              ids.add(args[streamsIndex + 1 + numStreams + i]);
+            }
+            LinkedHashMap<String, List<Map<String, String>>> finalResults = new LinkedHashMap<>();
+
+            for (int i = 0; i < keys.size(); i++) {
+              String key = keys.get(i);
+              String id = ids.get(i);
+
+              List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
+              StreamId startId = StreamId.fromString(id, false);
+
+              List<Map<String, String>> filteredEntries = new ArrayList<>();
+              for (Map<String, String> entry : entries) {
+                StreamId currentId = StreamId.fromString(entry.get("id"), false);
+                if (currentId.compareTo(startId) > 0) {
+                  filteredEntries.add(entry);
+                }
+              }
+              if (!filteredEntries.isEmpty()) {
+                finalResults.put(key, filteredEntries);
+              }
+            }
+            if (finalResults.isEmpty()) {
+              outputStream.write("$-1\r\n".getBytes());
+              return;
+            }
             StringBuilder response = new StringBuilder();
-            response.append("*1\r\n"); // Outer array with count of results
-            response.append("*2\r\n"); // Inner array for the stream
-            response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
-            response.append("*").append(results.size()).append("\r\n"); // Count of
-            // entries in the stream
-
-            for (Map<String, String> entry : results) {
+            response.append("*").append(finalResults.size()).append("\r\n");
+            for (Map.Entry<String, List<Map<String, String>>> streamResult : finalResults.entrySet()) {
+              String key = streamResult.getKey();
+              List<Map<String, String>> results = streamResult.getValue();
               response.append("*2\r\n");
-              String idStr = entry.get("id");
-              response.append("$").append(idStr.length()).append("\r\n").append(idStr).append("\r\n");
-              response.append("*").append((entry.size() - 1) * 2).append("\r\n");
-
-              for (Map.Entry<String, String> field : entry.entrySet()) {
-                if (!field.getKey().equals("id")) {
-                  response.append("$").append(field.getKey().length()).append("\r\n");
-                  response.append(field.getKey()).append("\r\n");
-                  response.append("$").append(field.getValue().length()).append("\r\n");
-                  response.append(field.getValue()).append("\r\n");
+              response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
+              response.append("*").append(results.size()).append("\r\n");
+              for (Map<String, String> entry : results) {
+                response.append("*2\r\n");
+                String idStr = entry.get("id");
+                response.append("$").append(idStr.length()).append("\r\n").append(idStr).append("\r\n");
+                response.append("*").append((entry.size() - 1) * 2).append("\r\n");
+                for (Map.Entry<String, String> field : entry.entrySet()) {
+                  if (!field.getKey().equals("id")) {
+                    response.append("$").append(field.getKey().length()).append("\r\n");
+                    response.append(field.getKey()).append("\r\n");
+                    response.append("$").append(field.getValue().length()).append("\r\n");
+                    response.append(field.getValue()).append("\r\n");
+                  }
                 }
               }
             }
-
             outputStream.write(response.toString().getBytes());
             continue;
           }
