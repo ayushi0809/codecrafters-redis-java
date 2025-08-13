@@ -282,7 +282,6 @@ public class Main {
                     "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
                 continue;
               }
-              id = newMs + "-" + newSeq;
               for (Map<String, String> entry : entries) {
                 if (entry.get("id").equals(id)) {
                   outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
@@ -296,6 +295,7 @@ public class Main {
                 continue;
               }
             }
+            id = newMs + "-" + newSeq;
             Map<String, String> fields = new HashMap<>();
             for (int i = 3; i < args.length; i += 2) {
               fields.put(args[i], args[i + 1]);
