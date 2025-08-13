@@ -264,6 +264,10 @@ public class Main {
               long newMs = Long.parseLong(newParts[0]);
               long lastSeq = Long.parseLong(lastParts[1]);
               long newSeq = Long.parseLong(newParts[1]);
+              if (newMs <= 0 && newSeq <= 0) {
+                outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
+                continue;
+              }
               if (newMs < lastMs || (newMs == lastMs && newSeq <= lastSeq)) {
                 outputStream.write(
                     "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
