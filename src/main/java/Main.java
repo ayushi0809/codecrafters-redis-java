@@ -233,6 +233,15 @@ public class Main {
 
             continue;
           }
+          if (args[0].equalsIgnoreCase("TYPE")) {
+            String key = args[1];
+            if (store.containsKey(key)) {
+              outputStream.write("+string\r\n".getBytes());
+            } else {
+              outputStream.write("$none\r\n".getBytes());
+            }
+            continue;
+          }
         }
       }
     } catch (IOException e) {
