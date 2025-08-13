@@ -251,7 +251,7 @@ public class Main {
             String id = args[2];
             System.out.println("XADD called with key: " + key + ", id: " + id);
 
-            if (!id.matches("\\d+-\\*")) {
+            if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
               outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
               continue;
             }
