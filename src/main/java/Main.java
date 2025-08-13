@@ -324,6 +324,29 @@ public class Main {
             outputStream.write(("$" + id.length() + "\r\n" + id + "\r\n").getBytes());
             continue;
           }
+          if (args[0].equalsIgnoreCase("XRANGE")) {
+            String key = args[1];
+            String startId = args[2];
+            String endId = args[3];
+            List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
+            StringBuilder response = new StringBuilder("*" + entries.size() + "\r\n");
+            for (Map<String, String> entry : entries) {
+              String id = entry.get("id");
+              if (id.compareTo(startId) >= 0 && id.compareTo(endId) <= 0) {
+                response.append("$").append(id.length()).append("\r\n").append(id).append("\r\n");
+                for (Map.Entry<String, String> field : entry.entrySet()) {
+                  if (!field.getKey().equals("id")) {
+                    response.append("$").append(field.getKey().length()).append("\r\n")
+                        .append(field.getKey()).append("\r\n");
+                    response.append("$").append(field.getValue().length()).append("\r\n")
+                        .append(field.getValue()).append("\r\n");
+                  }
+                }
+              }
+            }
+            outputStream.write(response.toString().getBytes());
+            continue;
+          }
         }
       }
     } catch (IOException e) {
