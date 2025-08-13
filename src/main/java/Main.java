@@ -17,6 +17,48 @@ public class Main {
   static Map<String, Object> listlocks = new ConcurrentHashMap<>();
   static Map<String, List<Map<String, String>>> streamStore = new HashMap<>();
 
+  // Helper class to hold and compare IDs
+  // Inside public class Main {
+
+  // ... your other static maps ...
+
+  // Helper class to hold and compare IDs
+  public static class StreamId implements Comparable<StreamId> {
+    long ms;
+    long seq;
+
+    public StreamId(long ms, long seq) {
+      this.ms = ms;
+      this.seq = seq;
+    }
+
+    // Parses a string like "123-45" or just "123"
+    public static StreamId fromString(String idStr, boolean isEndId) {
+      if (idStr.equals("-"))
+        return new StreamId(0, 0);
+      if (idStr.equals("+"))
+        return new StreamId(Long.MAX_VALUE, Long.MAX_VALUE);
+
+      if (idStr.contains("-")) {
+        String[] parts = idStr.split("-");
+        return new StreamId(Long.parseLong(parts[0]), Long.parseLong(parts[1]));
+      } else {
+        long ms = Long.parseLong(idStr);
+        long seq = isEndId ? Long.MAX_VALUE : 0;
+        return new StreamId(ms, seq);
+      }
+    }
+
+    @Override
+    public int compareTo(StreamId other) {
+      if (this.ms != other.ms) {
+        return Long.compare(this.ms, other.ms);
+      }
+      return Long.compare(this.seq, other.seq);
+    }
+  }
+
+  // ... rest of your Main class ...
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
     // when running tests.
@@ -326,28 +368,55 @@ public class Main {
           }
           if (args[0].equalsIgnoreCase("XRANGE")) {
             String key = args[1];
-            String startId = args[2];
-            String endId = args[3];
+            String startArg = args[2];
+            String endArg = args[3];
+
             List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
-            StringBuilder response = new StringBuilder("");
-            int i = 0;
+
+            // Use our helper to correctly parse IDs, handling partials, '-', and '+'
+            StreamId startId = StreamId.fromString(startArg, false); // isEndId = false
+            StreamId endId = StreamId.fromString(endArg, true); // isEndId = true
+
+            List<Map<String, String>> results = new ArrayList<>();
             for (Map<String, String> entry : entries) {
+              // Parse the current entry's ID for a correct numerical comparison
+              StreamId currentId = StreamId.fromString(entry.get("id"), false);
+
+              // Correctly compare the IDs numerically
+              if (currentId.compareTo(startId) >= 0 && currentId.compareTo(endId) <= 0) {
+                results.add(entry);
+              }
+            }
+
+            // Build the RESP response with the CORRECT nested format
+            StringBuilder response = new StringBuilder();
+            response.append("*").append(results.size()).append("\r\n"); // Outer array with count of results
+
+            for (Map<String, String> entry : results) {
+              // Each result is an array of 2 elements: [ID, [fields...]]
+              response.append("*2\r\n");
+
+              // 1. The ID (as a bulk string)
               String id = entry.get("id");
-              if (id.compareTo(startId) >= 0 && id.compareTo(endId) <= 0) {
-                i = i + 1;
-                response.append("*").append(entry.size() + 1).append("\r\n");
-                response.append("$").append(id.length()).append("\r\n").append(id).append("\r\n");
-                for (Map.Entry<String, String> field : entry.entrySet()) {
-                  if (!field.getKey().equals("id")) {
-                    response.append("*").append(field.getKey().length()).append("\r\n")
-                        .append(field.getKey()).append("\r\n");
-                    response.append("$").append(field.getValue().length()).append("\r\n")
-                        .append(field.getValue()).append("\r\n");
-                  }
+              response.append("$").append(id.length()).append("\r\n").append(id).append("\r\n");
+
+              // 2. The fields (as an array of bulk strings)
+              // The number of items is (entry.size() - 1) * 2 because we don't include the
+              // 'id' key
+              response.append("*").append((entry.size() - 1) * 2).append("\r\n");
+
+              for (Map.Entry<String, String> field : entry.entrySet()) {
+                if (!field.getKey().equals("id")) {
+                  // Add the field key as a Bulk String
+                  response.append("$").append(field.getKey().length()).append("\r\n");
+                  response.append(field.getKey()).append("\r\n");
+                  // Add the field value as a Bulk String
+                  response.append("$").append(field.getValue().length()).append("\r\n");
+                  response.append(field.getValue()).append("\r\n");
                 }
               }
             }
-            response.insert(0, "*" + i + "\r\n");
+
             outputStream.write(response.toString().getBytes());
             continue;
           }
