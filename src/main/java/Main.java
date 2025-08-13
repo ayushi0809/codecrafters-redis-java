@@ -274,7 +274,7 @@ public class Main {
               } else {
                 newSeq = Long.parseLong(newParts[1]);
               }
-              if (newMs <= 0 && newSeq <= 0) {
+              if (newMs < 0 || (newMs == 0 && newSeq <= 0)) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
