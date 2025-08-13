@@ -251,59 +251,67 @@ public class Main {
             String id = args[2];
             System.out.println("XADD called with key: " + key + ", id: " + id);
 
-            if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
-              outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
-              continue;
-            }
+            // if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
+            // outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
+            // continue;
+            // }
             streamStore.putIfAbsent(key, new ArrayList<>());
             List<Map<String, String>> entries = streamStore.get(key);
-            String[] newParts = id.split("-");
-            long newMs = Long.parseLong(newParts[0]);
+            long newMs = 0;
             long newSeq = 0;
-            if (!entries.isEmpty()) {
-              String lastId = entries.get(entries.size() - 1).get("id");
-              String[] lastParts = lastId.split("-");
-              long lastMs = Long.parseLong(lastParts[0]);
-              long lastSeq = Long.parseLong(lastParts[1]);
-              if (newParts[1].equals("*")) {
-                if (newMs == lastMs) {
-                  newSeq = lastSeq + 1;
+            if (id.equals("*")) {
+              newMs = System.currentTimeMillis();
+              newSeq = 0;
+            } else {
+              String[] newParts = id.split("-");
+              newMs = Long.parseLong(newParts[0]);
+              newSeq = 0;
+              if (!entries.isEmpty()) {
+                String lastId = entries.get(entries.size() - 1).get("id");
+                String[] lastParts = lastId.split("-");
+                long lastMs = Long.parseLong(lastParts[0]);
+                long lastSeq = Long.parseLong(lastParts[1]);
+                if (newParts[1].equals("*")) {
+                  if (newMs == lastMs) {
+                    newSeq = lastSeq + 1;
+                  } else {
+                    newSeq = 0;
+                  }
                 } else {
-                  newSeq = 0;
+                  newSeq = Long.parseLong(newParts[1]);
                 }
-              } else {
-                newSeq = Long.parseLong(newParts[1]);
-              }
-              if (newMs < 0 || (newMs == 0 && newSeq <= 0)) {
-                outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
-                continue;
-              }
-              if (newMs < lastMs || (newMs == lastMs && newSeq <= lastSeq)) {
-                outputStream.write(
-                    "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
-                continue;
-              }
-              id = newMs + "-" + newSeq;
-              for (Map<String, String> entry : entries) {
-                if (entry.get("id").equals(id)) {
-                  outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
+                if (newMs < 0 || (newMs == 0 && newSeq <= 0)) {
+                  outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                   continue;
                 }
-              }
-            } else {
-              if (newParts[1].equals("*")) {
-                if (newMs == 0) {
-                  newSeq = 1;
-                } else {
-                  newSeq = 0;
+                if (newMs < lastMs || (newMs == lastMs && newSeq <= lastSeq)) {
+                  outputStream.write(
+                      "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n"
+                          .getBytes());
+                  continue;
+                }
+                id = newMs + "-" + newSeq;
+                for (Map<String, String> entry : entries) {
+                  if (entry.get("id").equals(id)) {
+                    outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
+                    continue;
+                  }
                 }
               } else {
-                newSeq = Long.parseLong(newParts[1]);
-              }
+                if (newParts[1].equals("*")) {
+                  if (newMs == 0) {
+                    newSeq = 1;
+                  } else {
+                    newSeq = 0;
+                  }
+                } else {
+                  newSeq = Long.parseLong(newParts[1]);
+                }
 
-              if ((newMs + "-" + newSeq).equals("0-0")) {
-                outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
-                continue;
+                if ((newMs + "-" + newSeq).equals("0-0")) {
+                  outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
+                  continue;
+                }
               }
             }
             id = newMs + "-" + newSeq;
