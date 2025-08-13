@@ -17,12 +17,6 @@ public class Main {
   static Map<String, Object> listlocks = new ConcurrentHashMap<>();
   static Map<String, List<Map<String, String>>> streamStore = new HashMap<>();
 
-  // Helper class to hold and compare IDs
-  // Inside public class Main {
-
-  // ... your other static maps ...
-
-  // Helper class to hold and compare IDs
   public static class StreamId implements Comparable<StreamId> {
     long ms;
     long seq;
@@ -58,7 +52,6 @@ public class Main {
     }
   }
 
-  // ... rest of your Main class ...
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
     // when running tests.
@@ -411,6 +404,56 @@ public class Main {
                   response.append("$").append(field.getKey().length()).append("\r\n");
                   response.append(field.getKey()).append("\r\n");
                   // Add the field value as a Bulk String
+                  response.append("$").append(field.getValue().length()).append("\r\n");
+                  response.append(field.getValue()).append("\r\n");
+                }
+              }
+            }
+
+            outputStream.write(response.toString().getBytes());
+            continue;
+          }
+          if (args[0].equalsIgnoreCase("XREAD")) {
+            String key = args[1];
+            String id = args[2];
+
+            // if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
+            // outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
+            // continue;
+            // }
+
+            List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
+
+            StreamId startId = StreamId.fromString(id, false); // isEndId = false
+
+            List<Map<String, String>> results = new ArrayList<>();
+            for (Map<String, String> entry : entries) {
+              StreamId currentId = StreamId.fromString(entry.get("id"), false);
+              if (currentId.compareTo(startId) > 0) {
+                results.add(entry);
+              }
+            }
+
+            if (results.isEmpty()) {
+              outputStream.write("$-1\r\n".getBytes());
+              continue;
+            }
+
+            StringBuilder response = new StringBuilder();
+            response.append("*1\r\n"); // Outer array with count of results
+            response.append("*2\r\n"); // Inner array for the stream
+            response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
+            response.append("*").append(results.size()).append("\r\n"); // Count of entries in the stream
+
+            for (Map<String, String> entry : results) {
+              String idStr = entry.get("id");
+              response.append("$").append(idStr.length()).append("\r\n").append(idStr).append("\r\n");
+              response.append("*").append((entry.size() - 1) * 2).append("\r\n");
+
+              for (Map.Entry<String, String> field : entry.entrySet()) {
+                if (!field.getKey().equals("id")) {
+                  response.append("$").append(field.getKey().length()).append("\r\n");
+                  response.append(field.getKey()).append("\r\n");
                   response.append("$").append(field.getValue().length()).append("\r\n");
                   response.append(field.getValue()).append("\r\n");
                 }
