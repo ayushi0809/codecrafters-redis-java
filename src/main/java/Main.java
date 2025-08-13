@@ -111,7 +111,7 @@ public class Main {
             Object lock = listlocks.get(key);
             if (lock != null) {
               synchronized (lock) {
-                lock.notifyAll();
+                lock.notify();
               }
             }
 
