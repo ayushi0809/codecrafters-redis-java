@@ -265,11 +265,8 @@ public class Main {
               String[] lastParts = lastId.split("-");
               long lastMs = Long.parseLong(lastParts[0]);
               long lastSeq = Long.parseLong(lastParts[1]);
-              if (newParts[1] == "*") {
+              if (newParts[1].equals("*")) {
                 newSeq = lastSeq + 1;
-              } else if (newParts.length != 2) {
-                outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
-                continue;
               } else {
                 newSeq = Long.parseLong(newParts[1]);
               }
@@ -282,6 +279,7 @@ public class Main {
                     "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
                 continue;
               }
+              id = newMs + "-" + newSeq;
               for (Map<String, String> entry : entries) {
                 if (entry.get("id").equals(id)) {
                   outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
@@ -299,7 +297,7 @@ public class Main {
                 newSeq = Long.parseLong(newParts[1]);
               }
 
-              if (newMs + "-" + newSeq == "0-0") {
+              if ((newMs + "-" + newSeq).equals("0-0")) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
