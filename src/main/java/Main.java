@@ -111,7 +111,7 @@ public class Main {
             Object lock = listlocks.get(key);
             if (lock != null) {
               synchronized (lock) {
-                lock.notify();
+                lock.notifyAll();
               }
             }
 
@@ -154,7 +154,7 @@ public class Main {
             Object lock = listlocks.get(key);
             if (lock != null) {
               synchronized (lock) {
-                lock.notify();
+                lock.notifyAll();
               }
             }
             outputStream.write((":" + list.size() + "\r\n").getBytes());
