@@ -15,6 +15,7 @@ public class Main {
   static Map<String, Long> expiryMap = new HashMap<>();
   static Map<String, List<String>> listStore = new HashMap<>();
   static Map<String, Object> listlocks = new ConcurrentHashMap<>();
+  static Map<String, List<Map<String, String>>> streamStore = new HashMap<>();
 
   public static void main(String[] args) {
     // You can use print statements as follows for debugging, they'll be visible
@@ -237,9 +238,23 @@ public class Main {
             String key = args[1];
             if (store.containsKey(key)) {
               outputStream.write("+string\r\n".getBytes());
+            } else if (streamStore.containsKey(key)) {
+              outputStream.write("+stream\r\n".getBytes());
             } else {
               outputStream.write("+none\r\n".getBytes());
             }
+            continue;
+          }
+          if (args[0].equalsIgnoreCase("XADD")) {
+            String key = args[1];
+            String id = args[2];
+            Map<String, String> fields = new HashMap<>();
+            for (int i = 3; i < args.length; i += 2) {
+              fields.put(args[i], args[i + 1]);
+            }
+            streamStore.putIfAbsent(key, new ArrayList<>());
+            streamStore.get(key).add(fields);
+            outputStream.write(("$" + id.length() + "\r\n" + id + "\r\n").getBytes());
             continue;
           }
         }
