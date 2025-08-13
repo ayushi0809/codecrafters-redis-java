@@ -289,11 +289,12 @@ public class Main {
                 }
               }
             } else {
-              // Stream is empty, check that ID > 0-0
-              if (newParts[1] == "*") {
-                newSeq = 1;
+              if (newParts[1].equals("*")) {
+                newSeq = 0;
+              } else {
+                newSeq = Long.parseLong(newParts[1]);
               }
-              if (newMs <= 0 && newSeq <= 0) {
+              if (newMs < 0 && newSeq < 0) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
