@@ -265,7 +265,8 @@ public class Main {
               long lastSeq = Long.parseLong(lastParts[1]);
               long newSeq = Long.parseLong(newParts[1]);
               if (newMs < lastMs || (newMs == lastMs && newSeq <= lastSeq)) {
-                outputStream.write("-ERR stream ID must be greater than last ID\r\n".getBytes());
+                outputStream.write(
+                    "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
                 continue;
               }
               for (Map<String, String> entry : entries) {
@@ -280,7 +281,7 @@ public class Main {
               long newMs = Long.parseLong(newParts[0]);
               long newSeq = Long.parseLong(newParts[1]);
               if (newMs <= 0 && newSeq <= 0) {
-                outputStream.write("-ERR stream ID must be greater than 0-0\r\n".getBytes());
+                outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
             }
