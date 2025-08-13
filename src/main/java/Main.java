@@ -329,14 +329,17 @@ public class Main {
             String startId = args[2];
             String endId = args[3];
             List<Map<String, String>> entries = streamStore.getOrDefault(key, new ArrayList<>());
-            StringBuilder response = new StringBuilder("*" + entries.size() + "\r\n");
+            StringBuilder response = new StringBuilder("");
+            int i = 0;
             for (Map<String, String> entry : entries) {
               String id = entry.get("id");
               if (id.compareTo(startId) >= 0 && id.compareTo(endId) <= 0) {
+                i = i + 1;
+                response.append("*").append(entry.size() + 1).append("\r\n");
                 response.append("$").append(id.length()).append("\r\n").append(id).append("\r\n");
                 for (Map.Entry<String, String> field : entry.entrySet()) {
                   if (!field.getKey().equals("id")) {
-                    response.append("$").append(field.getKey().length()).append("\r\n")
+                    response.append("*").append(field.getKey().length()).append("\r\n")
                         .append(field.getKey()).append("\r\n");
                     response.append("$").append(field.getValue().length()).append("\r\n")
                         .append(field.getValue()).append("\r\n");
@@ -344,6 +347,7 @@ public class Main {
                 }
               }
             }
+            response.insert(0, "*" + i + "\r\n");
             outputStream.write(response.toString().getBytes());
             continue;
           }
