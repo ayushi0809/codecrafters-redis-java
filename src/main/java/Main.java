@@ -290,11 +290,16 @@ public class Main {
               }
             } else {
               if (newParts[1].equals("*")) {
-                newSeq = 0;
+                if (newMs == 0) {
+                  newSeq = 1;
+                } else {
+                  newSeq = 0;
+                }
               } else {
                 newSeq = Long.parseLong(newParts[1]);
               }
-              if (newMs < 0 && newSeq < 0) {
+
+              if (newMs + "-" + newSeq == "0-0") {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
