@@ -248,12 +248,48 @@ public class Main {
           if (args[0].equalsIgnoreCase("XADD")) {
             String key = args[1];
             String id = args[2];
+
+            if (!id.matches("\\d+-\\d+")) {
+              outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
+              continue;
+            }
+            streamStore.putIfAbsent(key, new ArrayList<>());
+            List<Map<String, String>> entries = streamStore.get(key);
+
+            if (!entries.isEmpty()) {
+              String lastId = entries.get(entries.size() - 1).get("id");
+              String[] lastParts = lastId.split("-");
+              String[] newParts = id.split("-");
+              long lastMs = Long.parseLong(lastParts[0]);
+              long newMs = Long.parseLong(newParts[0]);
+              long lastSeq = Long.parseLong(lastParts[1]);
+              long newSeq = Long.parseLong(newParts[1]);
+              if (newMs < lastMs || (newMs == lastMs && newSeq <= lastSeq)) {
+                outputStream.write("-ERR stream ID must be greater than last ID\r\n".getBytes());
+                continue;
+              }
+              for (Map<String, String> entry : entries) {
+                if (entry.get("id").equals(id)) {
+                  outputStream.write("-ERR duplicate stream ID\r\n".getBytes());
+                  continue;
+                }
+              }
+            } else {
+              // Stream is empty, check that ID > 0-0
+              String[] newParts = id.split("-");
+              long newMs = Long.parseLong(newParts[0]);
+              long newSeq = Long.parseLong(newParts[1]);
+              if (newMs <= 0 && newSeq <= 0) {
+                outputStream.write("-ERR stream ID must be greater than 0-0\r\n".getBytes());
+                continue;
+              }
+            }
             Map<String, String> fields = new HashMap<>();
             for (int i = 3; i < args.length; i += 2) {
               fields.put(args[i], args[i + 1]);
             }
-            streamStore.putIfAbsent(key, new ArrayList<>());
-            streamStore.get(key).add(fields);
+            fields.put("id", id);
+            entries.add(fields);
             outputStream.write(("$" + id.length() + "\r\n" + id + "\r\n").getBytes());
             continue;
           }
