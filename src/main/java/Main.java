@@ -249,8 +249,9 @@ public class Main {
           if (args[0].equalsIgnoreCase("XADD")) {
             String key = args[1];
             String id = args[2];
+            System.out.println("XADD called with key: " + key + ", id: " + id);
 
-            if (!id.matches("\\d+-\\d+")) {
+            if (!id.matches("\\d+-\\*")) {
               outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
               continue;
             }
@@ -290,7 +291,7 @@ public class Main {
               }
             } else {
               // Stream is empty, check that ID > 0-0
-              if (newMs <= 0 && newSeq < 0) {
+              if (newMs < 0 && newSeq < 0) {
                 outputStream.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
                 continue;
               }
