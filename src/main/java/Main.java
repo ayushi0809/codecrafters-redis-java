@@ -266,7 +266,11 @@ public class Main {
               long lastMs = Long.parseLong(lastParts[0]);
               long lastSeq = Long.parseLong(lastParts[1]);
               if (newParts[1].equals("*")) {
-                newSeq = lastSeq + 1;
+                if (newMs == lastMs) {
+                  newSeq = lastSeq + 1;
+                } else {
+                  newSeq = 0;
+                }
               } else {
                 newSeq = Long.parseLong(newParts[1]);
               }
