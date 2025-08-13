@@ -238,7 +238,7 @@ public class Main {
             if (store.containsKey(key)) {
               outputStream.write("+string\r\n".getBytes());
             } else {
-              outputStream.write("$none\r\n".getBytes());
+              outputStream.write("+none\r\n".getBytes());
             }
             continue;
           }
