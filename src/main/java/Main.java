@@ -414,8 +414,8 @@ public class Main {
             continue;
           }
           if (args[0].equalsIgnoreCase("XREAD")) {
-            String key = args[1];
-            String id = args[2];
+            String key = args[2];
+            String id = args[3];
 
             // if (!id.matches("(\\d+|\\*)-(\\d+|\\*)")) {
             // outputStream.write("-ERR invalid stream ID format\r\n".getBytes());
